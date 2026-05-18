@@ -4,6 +4,43 @@ A production-grade AWS scalability reference architecture that demonstrates how 
 
 ---
 
+## Repository Structure
+
+```
+blackfriday-ready-infra/
+├── terraform/                  # All infrastructure as code
+│   ├── main.tf                 # Root module — wires all modules together
+│   ├── variables.tf            # Input variables (region, env name, instance types)
+│   ├── outputs.tf              # Exported values (ALB DNS, CloudFront domain, etc.)
+│   ├── backend.tf              # S3 + DynamoDB remote state config
+│   └── modules/
+│       ├── networking/         # VPC, subnets (public/private), IGW, NAT, route tables
+│       ├── compute/            # ALB, ASG, warm pool, scheduled scaling, security groups
+│       │   └── user_data.sh.tpl  # EC2 bootstrap: installs Python, pulls app from S3
+│       ├── rds/                # PostgreSQL 15, RDS Proxy, Secrets Manager integration
+│       ├── elasticache/        # Redis 7.0 replication group (1 primary + 1 replica)
+│       ├── cloudfront/         # CloudFront distribution + cache behaviours per path
+│       └── waf/                # WAFv2 WebACL: rate limit + managed rule sets
+│
+├── app/
+│   ├── app.py                  # FastAPI app: /health, /api/products, /api/inventory, /api/checkout
+│   ├── requirements.txt        # Python dependencies (fastapi, uvicorn, psycopg2, redis)
+│   └── seed.py                 # Populates RDS with 100 sample products
+│
+├── load-test/
+│   ├── k6-script.js            # k6 load test: 3 phases (baseline → ramp → 500 VU peak)
+│   └── results/
+│       └── summary.json        # Actual test results from last run
+│
+├── monitoring/
+│   └── cloudwatch-dashboard.json  # CloudWatch dashboard definition (import via CLI)
+│
+└── docs/
+    └── architecture-decisions.md  # Detailed ADRs for all 4 key design choices
+```
+
+---
+
 ## Architecture Overview
 
 ```
@@ -199,23 +236,43 @@ k6 run --env BASE_URL="http://$CF_DOMAIN" k6-script.js
 # Results written to load-test/results/summary.json
 ```
 
+**Expected results at 500 VUs (verified):**
+
+| Metric | Result | Threshold |
+|---|---|---|
+| Error rate | 0% | < 5% |
+| p95 response time | 80ms | < 3,000ms |
+| Product API p95 | 5ms | p99 < 2,000ms |
+| Inventory API p95 | 73ms | p99 < 2,000ms |
+| Checkout p95 | 168ms | p99 < 3,000ms |
+| Checkout success rate | 100% | > 90% |
+| Total requests (31min) | 404,101 | — |
+
+All thresholds pass at peak load. See `load-test/results/summary.json` for the full JSON output.
+
 ### Step 7: Import CloudWatch Dashboard
 
-Replace the placeholder values in `monitoring/cloudwatch-dashboard.json`:
-
-| Placeholder | Replace with |
-|---|---|
-| `${ALB_ARN_SUFFIX}` | `terraform output -raw` for `alb_arn_suffix` |
-| `${ASG_NAME}` | ASG name from `terraform output` or AWS Console |
-| `${DB_INSTANCE_ID}` | `blackfriday-prod-postgres` |
-| `${ELASTICACHE_ID}` | `blackfriday-prod-redis` |
-| `${WAF_ACL_NAME}` | `blackfriday-prod-web-acl` |
-| `${AWS_REGION}` | `us-east-1` |
+The dashboard requires values from your Terraform outputs. Run this script to auto-fill and import:
 
 ```bash
+cd ../
+ALB_ARN_SUFFIX=$(cd terraform && terraform output -raw alb_arn_suffix)
+ASG_NAME=$(cd terraform && terraform output -raw asg_name)
+
+sed \
+  -e "s|\${ALB_ARN_SUFFIX}|$ALB_ARN_SUFFIX|g" \
+  -e "s|\${ASG_NAME}|$ASG_NAME|g" \
+  -e "s|\${DB_INSTANCE_ID}|blackfriday-prod-postgres|g" \
+  -e "s|\${ELASTICACHE_ID}|blackfriday-prod-redis|g" \
+  -e "s|\${WAF_ACL_NAME}|blackfriday-prod-web-acl|g" \
+  -e "s|\${AWS_REGION}|us-east-1|g" \
+  monitoring/cloudwatch-dashboard.json > /tmp/dashboard-filled.json
+
 aws cloudwatch put-dashboard \
   --dashboard-name BlackFriday-Ops \
-  --dashboard-body file://monitoring/cloudwatch-dashboard.json
+  --dashboard-body file:///tmp/dashboard-filled.json
+
+echo "Dashboard imported: https://console.aws.amazon.com/cloudwatch/home#dashboards:name=BlackFriday-Ops"
 ```
 
 ---
@@ -253,6 +310,36 @@ Costs are estimates. Actual costs depend on traffic volume, data transfer, and s
 | WAF blocked requests | > 1000/min | > 10000/min | WAF Blocked |
 | ALB 5XX errors | > 10/min | > 100/min | ALB 5XX Count |
 | RDS freeable memory | < 200MB | < 100MB | RDS Memory |
+
+---
+
+## Troubleshooting
+
+### `terraform apply` fails on RDS Proxy — "Secrets Manager secret not found"
+RDS Proxy is created before the secret is fully propagated. Re-run `terraform apply` — it is idempotent and will pick up the secret on the second pass.
+
+### EC2 instances launch but health checks fail (ALB shows unhealthy targets)
+The user data script pulls `app.py` from S3 and starts uvicorn. Common causes:
+- **Missing S3 object** — confirm `app.py` was uploaded: `aws s3 ls s3://blackfriday-prod-app-<ACCOUNT_ID>/`
+- **Instance profile missing permissions** — the IAM role needs `s3:GetObject` on the app bucket and `secretsmanager:GetSecretValue` on the DB secret
+- **Grace period too short** — the ASG health check grace period is 300s; if the instance hasn't finished bootstrapping, increase it temporarily in the console
+
+### `python3 seed.py` fails with "could not connect to server"
+The RDS instance is in private subnets — `seed.py` must run from within the VPC (an EC2 instance or via AWS Session Manager on an existing instance), not from your local machine.
+
+### k6 reports high error rates during ramp phase
+This is normal for the first 1–2 minutes of ramp-up while CloudFront warms its cache and the ASG scales out. Error rate should drop to 0% once warm pool instances join the target group. If errors persist beyond 3 minutes, check ALB access logs for 5XX origins.
+
+### WAF blocking legitimate requests
+AWS managed rules can false-positive on certain user agents or request patterns. Switch `override_action` from `none` to `count` in `terraform/modules/waf/main.tf`, redeploy, and inspect WAF logs in CloudWatch to identify the triggering rule before re-enabling block mode.
+
+### CloudFront returning stale product data
+The product cache TTL is 300 seconds. To force immediate invalidation:
+```bash
+aws cloudfront create-invalidation \
+  --distribution-id <DISTRIBUTION_ID> \
+  --paths "/api/products*"
+```
 
 ---
 
