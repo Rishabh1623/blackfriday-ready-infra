@@ -1,0 +1,18 @@
+# Claude Code internal settings
+.claude/
+
+# Terraform state and sensitive files
+*.tfstate
+*.tfstate.backup
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+*.tfvars
+
+# Environment and secrets
+.env
+*.pem
+*.key
+
+# OS
+.DS_Store
