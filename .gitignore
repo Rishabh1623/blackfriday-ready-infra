@@ -17,3 +17,6 @@ load-test/results/
 
 # OS
 .DS_Store
+
+# Claude Code
+.claude/
