@@ -1,18 +1,19 @@
-# Claude Code internal settings
-.claude/
-
-# Terraform state and sensitive files
-*.tfstate
-*.tfstate.backup
+# Terraform
 .terraform/
 .terraform.lock.hcl
-terraform.tfvars
+*.tfstate
+*.tfstate.backup
 *.tfvars
+terraform.tfvars
 
-# Environment and secrets
+# Python
+__pycache__/
+*.pyc
+*.pyo
 .env
-*.pem
-*.key
+
+# Load test results
+load-test/results/
 
 # OS
 .DS_Store
