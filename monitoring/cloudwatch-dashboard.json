@@ -1,0 +1,341 @@
+{
+  "widgets": [
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 0,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "title": "ALB Request Count",
+        "view": "timeSeries",
+        "stacked": false,
+        "stat": "Sum",
+        "period": 60,
+        "metrics": [
+          [
+            "AWS/ApplicationELB",
+            "RequestCount",
+            "LoadBalancer",
+            "app/blackfriday-prod-alb/e5709c3879c3d62f"
+          ]
+        ],
+        "yAxis": {
+          "left": {
+            "min": 0
+          }
+        },
+        "region": "us-east-1"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 8,
+      "y": 0,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "title": "ALB Target Response Time (p50 / p95 / p99)",
+        "view": "timeSeries",
+        "stacked": false,
+        "period": 60,
+        "metrics": [
+          [
+            "AWS/ApplicationELB",
+            "TargetResponseTime",
+            "LoadBalancer",
+            "app/blackfriday-prod-alb/e5709c3879c3d62f",
+            {
+              "stat": "p50",
+              "label": "p50"
+            }
+          ],
+          [
+            "AWS/ApplicationELB",
+            "TargetResponseTime",
+            "LoadBalancer",
+            "app/blackfriday-prod-alb/e5709c3879c3d62f",
+            {
+              "stat": "p95",
+              "label": "p95"
+            }
+          ],
+          [
+            "AWS/ApplicationELB",
+            "TargetResponseTime",
+            "LoadBalancer",
+            "app/blackfriday-prod-alb/e5709c3879c3d62f",
+            {
+              "stat": "p99",
+              "label": "p99"
+            }
+          ]
+        ],
+        "yAxis": {
+          "left": {
+            "min": 0,
+            "label": "Seconds"
+          }
+        },
+        "region": "us-east-1"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 16,
+      "y": 0,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "title": "ASG In-Service Instances",
+        "view": "timeSeries",
+        "stacked": false,
+        "stat": "Average",
+        "period": 60,
+        "metrics": [
+          [
+            "AWS/AutoScaling",
+            "GroupInServiceInstances",
+            "AutoScalingGroupName",
+            "blackfriday-prod-asg"
+          ]
+        ],
+        "yAxis": {
+          "left": {
+            "min": 0
+          }
+        },
+        "annotations": {
+          "horizontal": [
+            {
+              "label": "Min (2)",
+              "value": 2
+            },
+            {
+              "label": "Peak target (10)",
+              "value": 10
+            },
+            {
+              "label": "Max (20)",
+              "value": 20,
+              "color": "#d62728"
+            }
+          ]
+        },
+        "region": "us-east-1"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 6,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "title": "RDS Active Connections",
+        "view": "timeSeries",
+        "stacked": false,
+        "stat": "Average",
+        "period": 60,
+        "metrics": [
+          [
+            "AWS/RDS",
+            "DatabaseConnections",
+            "DBInstanceIdentifier",
+            "blackfriday-prod-postgres"
+          ]
+        ],
+        "yAxis": {
+          "left": {
+            "min": 0
+          }
+        },
+        "region": "us-east-1"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 8,
+      "y": 6,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "title": "ElastiCache Cache Hits vs Misses",
+        "view": "timeSeries",
+        "stacked": false,
+        "stat": "Sum",
+        "period": 60,
+        "metrics": [
+          [
+            "AWS/ElastiCache",
+            "CacheHits",
+            "ReplicationGroupId",
+            "blackfriday-prod-redis",
+            {
+              "label": "Hits",
+              "color": "#2ca02c"
+            }
+          ],
+          [
+            "AWS/ElastiCache",
+            "CacheMisses",
+            "ReplicationGroupId",
+            "blackfriday-prod-redis",
+            {
+              "label": "Misses",
+              "color": "#d62728"
+            }
+          ]
+        ],
+        "yAxis": {
+          "left": {
+            "min": 0
+          }
+        },
+        "region": "us-east-1"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 16,
+      "y": 6,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "title": "WAF Blocked Requests",
+        "view": "timeSeries",
+        "stacked": false,
+        "stat": "Sum",
+        "period": 60,
+        "metrics": [
+          [
+            "AWS/WAFV2",
+            "BlockedRequests",
+            "WebACL",
+            "blackfriday-prod-web-acl",
+            "Region",
+            "us-east-1",
+            "Rule",
+            "ALL"
+          ]
+        ],
+        "yAxis": {
+          "left": {
+            "min": 0
+          }
+        },
+        "region": "us-east-1"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 12,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "title": "Application Cache Hit Rate",
+        "view": "timeSeries",
+        "stacked": false,
+        "stat": "Average",
+        "period": 60,
+        "metrics": [
+          [
+            "blackfriday",
+            "CacheHitRate",
+            {
+              "label": "Cache Hit Rate",
+              "color": "#2ca02c"
+            }
+          ]
+        ],
+        "yAxis": {
+          "left": {
+            "min": 0,
+            "max": 1,
+            "label": "Rate (0\u20131)"
+          }
+        },
+        "annotations": {
+          "horizontal": [
+            {
+              "label": "Target \u2265 0.80",
+              "value": 0.8,
+              "color": "#ff7f0e"
+            }
+          ]
+        },
+        "region": "us-east-1"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 8,
+      "y": 12,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "title": "RDS Freeable Memory",
+        "view": "timeSeries",
+        "stacked": false,
+        "stat": "Average",
+        "period": 60,
+        "metrics": [
+          [
+            "AWS/RDS",
+            "FreeableMemory",
+            "DBInstanceIdentifier",
+            "blackfriday-prod-postgres"
+          ]
+        ],
+        "yAxis": {
+          "left": {
+            "min": 0,
+            "label": "Bytes"
+          }
+        },
+        "region": "us-east-1"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 16,
+      "y": 12,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "title": "ALB 5XX Error Count",
+        "view": "timeSeries",
+        "stacked": false,
+        "stat": "Sum",
+        "period": 60,
+        "metrics": [
+          [
+            "AWS/ApplicationELB",
+            "HTTPCode_ELB_5XX_Count",
+            "LoadBalancer",
+            "app/blackfriday-prod-alb/e5709c3879c3d62f",
+            {
+              "color": "#d62728"
+            }
+          ]
+        ],
+        "yAxis": {
+          "left": {
+            "min": 0
+          }
+        },
+        "annotations": {
+          "horizontal": [
+            {
+              "label": "Alert threshold",
+              "value": 50,
+              "color": "#d62728"
+            }
+          ]
+        },
+        "region": "us-east-1"
+      }
+    }
+  ]
+}
