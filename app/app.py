@@ -129,10 +129,14 @@ def _record_cache_miss():
 # ── Endpoints ──────────────────────────────────────────────────────────────────
 
 
+APP_VERSION = "1.1.0"
+
+
 @app.get("/health")
 def health():
     return {
         "status": "ok",
+        "version": APP_VERSION,
         "instance_id": _get_instance_id(),
         "timestamp": datetime.utcnow().isoformat() + "Z",
     }
