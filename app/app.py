@@ -221,7 +221,8 @@ _UI_HTML = """<!DOCTYPE html>
 
 <header>
   <h1>PEAK<span>MART</span></h1>
-  <p style="font-size:0.72rem;color:#888;letter-spacing:2px;text-transform:uppercase;margin-top:2px">Peak Season Deals</p>
+  <p style="font-size:0.72rem;color:#888;letter-spacing:2px;text-transform:uppercase;margin-top:2px"
+  >Peak Season Deals</p>
   <div class="badge">
     <span class="dot" id="health-dot"></span>
     <span id="health-text">Checking...</span>
