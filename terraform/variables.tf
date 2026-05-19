@@ -91,7 +91,7 @@ variable "cache_node_type" {
 variable "app_ami_id" {
   description = "Pre-baked AMI with Python packages pre-installed. Empty string falls back to latest AL2023."
   type        = string
-  default     = "ami-0940d2c40616b4152"
+  default     = "ami-0efefd093d7345801"
 }
 
 # ── HTTPS / TLS ───────────────────────────────────────────────────────────────
