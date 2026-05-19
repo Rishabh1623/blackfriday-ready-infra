@@ -56,4 +56,4 @@ SVCEOF
 
 systemctl daemon-reload
 systemctl enable blackfriday
-systemctl start blackfriday
+systemctl restart blackfriday
