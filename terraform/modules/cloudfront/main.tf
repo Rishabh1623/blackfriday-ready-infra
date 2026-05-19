@@ -1,6 +1,7 @@
 locals {
-  name           = "${var.project_name}-${var.environment}"
-  alb_origin_id  = "${local.name}-alb-origin"
+  name          = "${var.project_name}-${var.environment}"
+  alb_origin_id = "${local.name}-alb-origin"
+  has_cert      = var.certificate_arn != "" && var.domain_name != ""
 }
 
 resource "aws_cloudfront_distribution" "main" {
@@ -8,17 +9,23 @@ resource "aws_cloudfront_distribution" "main" {
   is_ipv6_enabled = true
   comment         = "BlackFriday CDN - caches product catalog, bypasses inventory/checkout"
   price_class     = "PriceClass_100"
-  # WAF is attached at the ALB layer (REGIONAL scope). CloudFront WAF requires
-  # a separate CLOUDFRONT-scoped WebACL created in us-east-1 — out of scope here.
+
+  # Custom domain alias — only set when a certificate and domain are provided.
+  # With no custom domain, the distribution is reachable via its cloudfront.net hostname.
+  aliases = local.has_cert ? [var.domain_name, "www.${var.domain_name}"] : []
+
+  # WAF CLOUDFRONT-scope WebACL must be created in us-east-1 (separate from the
+  # REGIONAL ALB WebACL). Left as a future enhancement.
 
   origin {
     domain_name = var.alb_dns_name
     origin_id   = local.alb_origin_id
 
     custom_origin_config {
-      http_port              = 80
-      https_port             = 443
-      origin_protocol_policy = "http-only"
+      http_port  = 80
+      https_port = 443
+      # Use HTTPS to origin when ALB has a validated cert; HTTP-only otherwise.
+      origin_protocol_policy = var.alb_https_enabled ? "https-only" : "http-only"
       origin_ssl_protocols   = ["TLSv1.2"]
     }
   }
@@ -40,7 +47,7 @@ resource "aws_cloudfront_distribution" "main" {
     default_ttl = 300
     max_ttl     = 300
 
-    viewer_protocol_policy = "allow-all"
+    viewer_protocol_policy = "redirect-to-https"
     compress               = true
   }
 
@@ -60,7 +67,7 @@ resource "aws_cloudfront_distribution" "main" {
     default_ttl = 0
     max_ttl     = 0
 
-    viewer_protocol_policy = "allow-all"
+    viewer_protocol_policy = "redirect-to-https"
   }
 
   # Never cache checkout — stateful POST endpoint
@@ -80,7 +87,7 @@ resource "aws_cloudfront_distribution" "main" {
     default_ttl = 0
     max_ttl     = 0
 
-    viewer_protocol_policy = "allow-all"
+    viewer_protocol_policy = "redirect-to-https"
   }
 
   # Default — pass through everything else unchanged
@@ -99,7 +106,7 @@ resource "aws_cloudfront_distribution" "main" {
     default_ttl = 0
     max_ttl     = 0
 
-    viewer_protocol_policy = "allow-all"
+    viewer_protocol_policy = "redirect-to-https"
   }
 
   restrictions {
@@ -109,7 +116,10 @@ resource "aws_cloudfront_distribution" "main" {
   }
 
   viewer_certificate {
-    cloudfront_default_certificate = true
+    cloudfront_default_certificate = !local.has_cert
+    acm_certificate_arn            = local.has_cert ? var.certificate_arn : null
+    ssl_support_method             = local.has_cert ? "sni-only" : null
+    minimum_protocol_version       = local.has_cert ? "TLSv1.2_2021" : "TLSv1"
   }
 
   tags = { Name = "${local.name}-cloudfront" }

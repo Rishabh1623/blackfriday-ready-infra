@@ -76,3 +76,9 @@ variable "app_ami_id" {
   default     = ""
   description = "Pre-baked AMI with Python packages pre-installed. If empty, falls back to latest AL2023 AMI."
 }
+
+variable "certificate_arn" {
+  type        = string
+  default     = ""
+  description = "Validated ACM certificate ARN. When set, adds an HTTPS listener and redirects HTTP → HTTPS."
+}

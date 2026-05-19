@@ -93,3 +93,33 @@ variable "app_ami_id" {
   type        = string
   default     = "ami-0940d2c40616b4152"
 }
+
+# ── HTTPS / TLS ───────────────────────────────────────────────────────────────
+
+variable "domain_name" {
+  description = "Apex domain for ACM certificate and CloudFront alias (e.g. example.com). Empty = HTTP-only ALB + default cloudfront.net domain."
+  type        = string
+  default     = ""
+}
+
+variable "route53_zone_id" {
+  description = "Route53 hosted zone ID for automatic ACM DNS validation. Empty = manual DNS validation."
+  type        = string
+  default     = ""
+}
+
+# ── Monitoring ────────────────────────────────────────────────────────────────
+
+variable "alert_email" {
+  description = "Email address to receive CloudWatch alarm notifications"
+  type        = string
+  default     = "rishabhmadne1623@gmail.com"
+}
+
+# ── CI/CD ─────────────────────────────────────────────────────────────────────
+
+variable "github_repo" {
+  description = "GitHub repository in owner/repo format for OIDC trust policy. Empty = skip OIDC role creation."
+  type        = string
+  default     = "Rishabh1623/blackfriday-ready-infra"
+}

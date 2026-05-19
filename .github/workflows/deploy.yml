@@ -1,0 +1,152 @@
+name: Deploy BlackFriday Infrastructure
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  id-token: write      # Required for OIDC token exchange with AWS
+  contents: read
+  pull-requests: write # Required to post terraform plan as PR comment
+
+env:
+  AWS_REGION: us-east-1
+  TF_VERSION: "1.7.5"
+
+jobs:
+  # ── Lint ──────────────────────────────────────────────────────────────────
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install flake8
+        run: pip install flake8
+
+      - name: Lint app/app.py
+        run: flake8 app/app.py --max-line-length=120 --ignore=W503
+
+  # ── Terraform Plan ────────────────────────────────────────────────────────
+  plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    needs: lint
+    outputs:
+      exitcode: ${{ steps.plan.outputs.exitcode }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init
+
+      - name: Terraform Validate
+        working-directory: terraform
+        run: terraform validate
+
+      - name: Terraform Plan
+        id: plan
+        working-directory: terraform
+        run: |
+          set +e
+          terraform plan -no-color -detailed-exitcode 2>&1 | tee plan.txt
+          echo "exitcode=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+          set -e
+
+      - name: Post plan to PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const raw = fs.readFileSync('terraform/plan.txt', 'utf8');
+            // Keep last 60 KB to stay under GitHub comment size limit
+            const plan = raw.length > 61440 ? '...(truncated)\n' + raw.slice(-61440) : raw;
+            const status = '${{ steps.plan.outputs.exitcode }}';
+            const icon = status === '0' ? '✅' : status === '2' ? '📋' : '❌';
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: [
+                `## ${icon} Terraform Plan`,
+                '```hcl',
+                plan,
+                '```',
+                `_exitcode: ${status} — 0=no changes, 2=changes pending, other=error_`,
+              ].join('\n'),
+            });
+
+      - name: Fail on plan error
+        if: steps.plan.outputs.exitcode == '1'
+        run: exit 1
+
+  # ── Deploy (main branch only) ─────────────────────────────────────────────
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: plan
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production   # Requires manual approval if configured in repo settings
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init
+
+      - name: Upload app artifact to S3
+        working-directory: terraform
+        run: |
+          BUCKET=$(terraform output -raw app_bucket_name)
+          aws s3 cp ../app/app.py "s3://${BUCKET}/app.py"
+          echo "Uploaded app.py → s3://${BUCKET}/app.py"
+
+      - name: Terraform Apply
+        working-directory: terraform
+        run: terraform apply -auto-approve
+
+      - name: Trigger ASG instance refresh
+        # Rolls out the new app.py to all instances with 50% min-healthy so
+        # at least half the fleet stays up during the refresh.
+        working-directory: terraform
+        run: |
+          ASG=$(terraform output -raw asg_name)
+          REFRESH_ID=$(aws autoscaling start-instance-refresh \
+            --auto-scaling-group-name "${ASG}" \
+            --preferences '{"MinHealthyPercentage":50,"InstanceWarmup":120}' \
+            --query InstanceRefreshId \
+            --output text)
+          echo "Instance refresh started: ${REFRESH_ID}"
+          echo "Track at: https://console.aws.amazon.com/ec2/autoscaling/home?region=${{ env.AWS_REGION }}#AutoScalingGroups:id=${ASG};view=details"

@@ -33,3 +33,33 @@ output "cloudwatch_dashboard_name" {
   description = "CloudWatch dashboard name"
   value       = "BlackFriday-Ops"
 }
+
+output "asg_name" {
+  description = "Auto Scaling Group name — used by GitHub Actions instance refresh step"
+  value       = module.compute.asg_name
+}
+
+output "app_bucket_name" {
+  description = "S3 bucket holding the app.py artifact — used by GitHub Actions deploy step"
+  value       = module.compute.app_bucket_name
+}
+
+output "sns_alerts_topic_arn" {
+  description = "SNS topic ARN receiving all CloudWatch alarm notifications"
+  value       = module.monitoring.sns_topic_arn
+}
+
+output "acm_certificate_arn" {
+  description = "ACM certificate ARN (empty when no domain is configured)"
+  value       = module.acm.certificate_arn
+}
+
+output "acm_certificate_validation_options" {
+  description = "DNS records to add for manual ACM certificate validation (only relevant when route53_zone_id is empty)"
+  value       = module.acm.certificate_validation_options
+}
+
+output "github_actions_role_arn" {
+  description = "IAM role ARN for GitHub Actions OIDC — set as AWS_DEPLOY_ROLE_ARN secret in GitHub"
+  value       = var.github_repo != "" ? aws_iam_role.github_actions[0].arn : ""
+}

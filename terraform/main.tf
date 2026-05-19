@@ -1,3 +1,7 @@
+locals {
+  name = "${var.project_name}-${var.environment}"
+}
+
 module "networking" {
   source = "./modules/networking"
 
@@ -16,6 +20,15 @@ module "waf" {
   environment  = var.environment
   # ALB ARN injected after compute module creates it — resolved via depends_on
   alb_arn = module.compute.alb_arn
+}
+
+module "acm" {
+  source = "./modules/acm"
+
+  project_name    = var.project_name
+  environment     = var.environment
+  domain_name     = var.domain_name
+  route53_zone_id = var.route53_zone_id
 }
 
 module "compute" {
@@ -39,6 +52,7 @@ module "compute" {
   db_secret_arn        = module.rds.secret_arn
   app_source_path      = "${path.root}/../app/app.py"
   app_ami_id           = var.app_ami_id
+  certificate_arn      = module.acm.certificate_arn
 
   depends_on = [module.rds, module.elasticache]
 }
@@ -71,7 +85,84 @@ module "elasticache" {
 module "cloudfront" {
   source = "./modules/cloudfront"
 
-  project_name = var.project_name
-  environment  = var.environment
-  alb_dns_name = module.compute.alb_dns_name
+  project_name      = var.project_name
+  environment       = var.environment
+  alb_dns_name      = module.compute.alb_dns_name
+  certificate_arn   = module.acm.certificate_arn
+  domain_name       = var.domain_name
+  alb_https_enabled = module.acm.certificate_arn != ""
+}
+
+module "monitoring" {
+  source = "./modules/monitoring"
+
+  project_name               = var.project_name
+  environment                = var.environment
+  alert_email                = var.alert_email
+  alb_arn_suffix             = module.compute.alb_arn_suffix
+  tg_arn_suffix              = module.compute.target_group_arn_suffix
+  asg_name                   = module.compute.asg_name
+  rds_instance_id            = module.rds.db_identifier
+  cache_replication_group_id = module.elasticache.replication_group_id
+}
+
+# ── GitHub Actions OIDC ────────────────────────────────────────────────────────
+# Allows GitHub Actions to assume an IAM role via OIDC — no long-lived AWS keys
+# stored in GitHub Secrets. The trust policy is scoped to a specific repo+branch.
+#
+# If this OIDC provider already exists in your account (created by another project),
+# import it instead of creating a new one:
+#   terraform import aws_iam_openid_connect_provider.github \
+#     arn:aws:iam::ACCOUNT_ID:oidc-provider/token.actions.githubusercontent.com
+
+resource "aws_iam_openid_connect_provider" "github" {
+  count = var.github_repo != "" ? 1 : 0
+
+  url             = "https://token.actions.githubusercontent.com"
+  client_id_list  = ["sts.amazonaws.com"]
+  # GitHub's current OIDC thumbprints — AWS validates these automatically for this provider
+  thumbprint_list = [
+    "6938fd4d98bab03faadb97b34396831e3780aea1",
+    "1c58a3a8518e8759bf075b76b750d4f2df264fcd",
+  ]
+
+  tags = { Name = "${local.name}-github-oidc-provider" }
+}
+
+resource "aws_iam_role" "github_actions" {
+  count = var.github_repo != "" ? 1 : 0
+
+  name = "${local.name}-github-actions"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Federated = aws_iam_openid_connect_provider.github[0].arn
+      }
+      Action = "sts:AssumeRoleWithWebIdentity"
+      Condition = {
+        StringEquals = {
+          "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
+        }
+        StringLike = {
+          # Allow any branch/ref in this repo (PRs + main).
+          # Restrict to :ref:refs/heads/main for deploy-only roles.
+          "token.actions.githubusercontent.com:sub" = "repo:${var.github_repo}:*"
+        }
+      }
+    }]
+  })
+
+  tags = { Name = "${local.name}-github-actions-role" }
+}
+
+# AdministratorAccess is used here for demo simplicity.
+# In production, scope this to only the services this pipeline touches:
+# EC2, ASG, S3, Secrets Manager, RDS, ElastiCache, CloudFront, WAF, CloudWatch, SNS, IAM (limited).
+resource "aws_iam_role_policy_attachment" "github_actions" {
+  count      = var.github_repo != "" ? 1 : 0
+  role       = aws_iam_role.github_actions[0].name
+  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
 }
