@@ -144,7 +144,14 @@ jobs:
 
       - name: Terraform Apply
         working-directory: terraform
-        run: terraform apply -auto-approve
+        run: |
+          terraform apply -auto-approve 2>&1 | tee /tmp/tf-apply.txt
+          EXIT=${PIPESTATUS[0]}
+          if [ $EXIT -ne 0 ]; then
+            ERROR=$(grep -A 8 "Error:" /tmp/tf-apply.txt | head -20)
+            echo "::error::Terraform apply failed: ${ERROR}"
+          fi
+          exit $EXIT
 
       - name: Trigger ASG instance refresh
         # Rolls out the new app.py to all instances with 50% min-healthy so
