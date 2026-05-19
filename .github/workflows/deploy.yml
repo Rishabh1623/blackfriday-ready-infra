@@ -48,13 +48,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Diagnose OIDC token availability
-        run: |
-          OIDC_URL=$([ -n "$ACTIONS_ID_TOKEN_REQUEST_URL" ] && echo YES || echo NO)
-          OIDC_TOK=$([ -n "$ACTIONS_ID_TOKEN_REQUEST_TOKEN" ] && echo YES || echo NO)
-          ROLE_SET=$([ -n "${{ secrets.AWS_DEPLOY_ROLE_ARN }}" ] && echo YES || echo NO)
-          echo "::notice::OIDC_URL=${OIDC_URL} | OIDC_TOKEN=${OIDC_TOK} | ROLE_ARN=${ROLE_SET}"
-
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
