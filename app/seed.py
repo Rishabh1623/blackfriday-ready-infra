@@ -160,17 +160,15 @@ def create_tables(cur):
 
 
 def seed_products(cur) -> list[int]:
-    product_ids = []
     for name, price, category in PRODUCTS:
         cur.execute(
             "INSERT INTO products (name, price, category) VALUES (%s, %s, %s) "
-            "ON CONFLICT DO NOTHING RETURNING id",
+            "ON CONFLICT DO NOTHING",
             (name, price, category),
         )
-        row = cur.fetchone()
-        if row:
-            product_ids.append(row[0])
-    return product_ids
+    # Fetch all IDs including pre-existing rows that ON CONFLICT skipped
+    cur.execute("SELECT id FROM products ORDER BY id")
+    return [row[0] for row in cur.fetchall()]
 
 
 def seed_inventory(cur, product_ids: list[int]):
@@ -184,6 +182,7 @@ def seed_inventory(cur, product_ids: list[int]):
 
 
 def seed_sessions(cur):
+    cur.execute("DELETE FROM sessions WHERE expires_at < NOW()")
     expires_at = datetime.utcnow() + timedelta(hours=24)
     for i in range(1000):
         user_id = f"user_{i + 1:04d}"
