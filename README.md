@@ -297,15 +297,15 @@ k6 run --env BASE_URL="https://$CF_DOMAIN" k6-script.js
 
 **Verified results at 500 VUs:**
 
-| Metric | Result | Threshold |
-|---|---|---|
-| Error rate | 0% | < 5% |
-| p95 response time | 80ms | < 3,000ms |
-| Product API p95 | 5ms | p99 < 2,000ms |
-| Inventory API p95 | 73ms | p99 < 2,000ms |
-| Checkout p95 | 168ms | p99 < 3,000ms |
-| Checkout success rate | 100% | > 90% |
-| Total requests (31min) | 404,101 | — |
+| Metric | Result | Threshold | Status |
+|---|---|---|---|
+| HTTP error rate | 1.84% | < 5% | ✅ Pass |
+| p95 response time | 69ms | < 3,000ms | ✅ Pass |
+| Product API p95 | 4ms | p99 < 2,000ms | ✅ Pass |
+| Inventory API p95 | 64ms | p99 < 2,000ms | ✅ Pass |
+| Checkout p95 | 129ms | p99 < 3,000ms | ✅ Pass |
+| Checkout success rate | 95.4% | > 90% | ✅ Pass |
+| Total requests (31 min) | 406,309 | — | — |
 
 ### Step 9: Import CloudWatch Dashboard
 
