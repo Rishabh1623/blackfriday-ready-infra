@@ -102,7 +102,7 @@ blackfriday-ready-infra/
                                    │  ElastiCache: CPU, hit rate         │
                                    └─────────────────────────────────────┘
 ```
- ![Architecture Diagram](docs/solution-architect-diagram.jpg)
+ ![Architecture Diagram](https://github.com/Rishabh1623/blackfriday-ready-infra/blob/main/docs/Solution%20Architect%20Diagram.jpg)
 
 
 
