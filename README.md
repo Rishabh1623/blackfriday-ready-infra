@@ -52,11 +52,6 @@ blackfriday-ready-infra/
 
 ## Architecture Diagram
 
-> Interactive diagram: [`docs/blackfriday-architecture.drawio`](docs/blackfriday-architecture.drawio) — open with [draw.io](https://app.diagrams.net)
-
-<!-- Once you upload your diagram image, replace the line below -->
-<!-- ![Architecture Diagram](docs/solution-architect-diagram.jpg) -->
-
 **Services & connections at a glance:**
 
 | Layer | Services |
