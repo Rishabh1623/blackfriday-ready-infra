@@ -50,8 +50,6 @@ blackfriday-ready-infra/
 
 ---
 
-## Architecture Diagram
-
 **Services & connections at a glance:**
 
 | Layer | Services |
@@ -122,6 +120,8 @@ blackfriday-ready-infra/
                                    │  ElastiCache: CPU, hit rate         │
                                    └─────────────────────────────────────┘
 ```
+## Architecture Diagram
+
  ![Architecture Diagram](https://github.com/Rishabh1623/blackfriday-ready-infra/blob/main/docs/Solution%20Architect%20Diagram.jpg)
 
 
