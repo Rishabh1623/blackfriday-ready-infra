@@ -42,8 +42,33 @@ blackfriday-ready-infra/
 │   └── cloudwatch-dashboard.json  # CloudWatch dashboard definition (import via CLI)
 │
 └── docs/
-    └── architecture-decisions.md  # Detailed ADRs for all key design choices
+    ├── architecture-decisions.md       # Detailed ADRs for all key design choices
+    ├── blackfriday-architecture.drawio # Editable draw.io architecture diagram (22 connections)
+    ├── architecture.md                 # Mermaid flowchart version of the architecture
+    └── architecture_diagram.py         # Python diagrams-library script (generates PNG)
 ```
+
+---
+
+## Architecture Diagram
+
+> Interactive diagram: [`docs/blackfriday-architecture.drawio`](docs/blackfriday-architecture.drawio) — open with [draw.io](https://app.diagrams.net)
+
+<!-- Once you upload your diagram image, replace the line below -->
+<!-- ![Architecture Diagram](docs/solution-architect-diagram.jpg) -->
+
+**Services & connections at a glance:**
+
+| Layer | Services |
+|---|---|
+| Edge / Global | CloudFront |
+| Security | WAF v2 (Regional, ALB-attached) |
+| Public Subnet | Internet Gateway · ALB · NAT Gateway |
+| Private Subnet — Compute | Auto Scaling Group (2–20 × EC2 t3.medium, 3 AZs) |
+| Private Subnet — Data | RDS Proxy → RDS PostgreSQL 15 · ElastiCache Redis 7.0 |
+| Private Subnet — Support | Secrets Manager · S3 App Artifacts · S3 Terraform State · DynamoDB Lock |
+| Monitoring | CloudWatch (10 alarms) → SNS → Email |
+| CI/CD | GitHub Actions (OIDC) → S3 → ASG instance refresh |
 
 ---
 
