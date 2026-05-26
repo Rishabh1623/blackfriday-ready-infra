@@ -193,52 +193,6 @@ GitHub Actions assumes an IAM role via OIDC (`sts:AssumeRoleWithWebIdentity`) �
 
 ---
 
-## Repository Structure
-
-```
-blackfriday-ready-infra/
-├── .github/
-│   └── workflows/
-│       └── deploy.yml          # CI/CD: lint → plan → deploy → instance refresh
-│
-├── terraform/                  # All infrastructure as code
-│   ├── main.tf                 # Root module — wires all modules together
-│   ├── variables.tf            # Input variables (region, env, instance types, domain)
-│   ├── outputs.tf              # Exported values (ALB DNS, CloudFront domain, role ARN, etc.)
-│   ├── backend.tf              # S3 + DynamoDB remote state config
-│   └── modules/
-│       ├── networking/         # VPC, subnets (public/private), IGW, NAT, route tables, SGs
-│       ├── compute/            # ALB, HTTPS listener, ASG, warm pool, scheduled scaling
-│       │   └── user_data.sh.tpl  # EC2 bootstrap: installs Python, pulls app from S3
-│       ├── acm/                # ACM certificate + DNS validation (Route53 or manual)
-│       ├── rds/                # PostgreSQL 15, RDS Proxy, Secrets Manager integration
-│       ├── elasticache/        # Redis 7.0 replication group (1 primary + 1 replica)
-│       ├── cloudfront/         # CloudFront distribution + cache behaviours per path
-│       ├── waf/                # WAFv2 WebACL: rate limit + managed rule sets
-│       └── monitoring/         # CloudWatch alarms (10) + SNS email topic
-│
-├── app/
-│   ├── app.py                  # FastAPI app: /health, /api/products, /api/inventory, /api/checkout
-│   ├── requirements.txt        # Python dependencies (fastapi, uvicorn, psycopg2, redis)
-│   └── seed.py                 # Populates RDS with 100 sample products
-│
-├── load-test/
-│   ├── k6-script.js            # k6 load test: 3 phases (baseline → ramp → 500 VU peak)
-│   └── results/
-│       └── summary.json        # Actual test results from last run
-│
-├── monitoring/
-│   └── cloudwatch-dashboard.json  # CloudWatch dashboard definition (import via CLI)
-│
-└── docs/
-    ├── architecture-decisions.md       # Detailed ADRs for all key design choices
-    ├── blackfriday-architecture.drawio # Editable draw.io architecture diagram (22 connections)
-    ├── architecture.md                 # Mermaid flowchart version of the architecture
-    └── architecture_diagram.py         # Python diagrams-library script (generates PNG)
-```
-
----
-
 ## Deploy It Yourself
 
 ### Prerequisites
@@ -387,7 +341,55 @@ echo "Dashboard: https://console.aws.amazon.com/cloudwatch/home#dashboards:name=
 
 ---
 
-## What to Watch During Peak
+## Repository Structure
+
+```
+blackfriday-ready-infra/
+├── .github/
+│   └── workflows/
+│       └── deploy.yml          # CI/CD: lint → plan → deploy → instance refresh
+│
+├── terraform/                  # All infrastructure as code
+│   ├── main.tf                 # Root module — wires all modules together
+│   ├── variables.tf            # Input variables (region, env, instance types, domain)
+│   ├── outputs.tf              # Exported values (ALB DNS, CloudFront domain, role ARN, etc.)
+│   ├── backend.tf              # S3 + DynamoDB remote state config
+│   └── modules/
+│       ├── networking/         # VPC, subnets (public/private), IGW, NAT, route tables, SGs
+│       ├── compute/            # ALB, HTTPS listener, ASG, warm pool, scheduled scaling
+│       │   └── user_data.sh.tpl  # EC2 bootstrap: installs Python, pulls app from S3
+│       ├── acm/                # ACM certificate + DNS validation (Route53 or manual)
+│       ├── rds/                # PostgreSQL 15, RDS Proxy, Secrets Manager integration
+│       ├── elasticache/        # Redis 7.0 replication group (1 primary + 1 replica)
+│       ├── cloudfront/         # CloudFront distribution + cache behaviours per path
+│       ├── waf/                # WAFv2 WebACL: rate limit + managed rule sets
+│       └── monitoring/         # CloudWatch alarms (10) + SNS email topic
+│
+├── app/
+│   ├── app.py                  # FastAPI app: /health, /api/products, /api/inventory, /api/checkout
+│   ├── requirements.txt        # Python dependencies (fastapi, uvicorn, psycopg2, redis)
+│   └── seed.py                 # Populates RDS with 100 sample products
+│
+├── load-test/
+│   ├── k6-script.js            # k6 load test: 3 phases (baseline → ramp → 500 VU peak)
+│   └── results/
+│       └── summary.json        # Actual test results from last run
+│
+├── monitoring/
+│   └── cloudwatch-dashboard.json  # CloudWatch dashboard definition (import via CLI)
+│
+└── docs/
+    ├── architecture-decisions.md       # Detailed ADRs for all key design choices
+    ├── blackfriday-architecture.drawio # Editable draw.io architecture diagram (22 connections)
+    ├── architecture.md                 # Mermaid flowchart version of the architecture
+    └── architecture_diagram.py         # Python diagrams-library script (generates PNG)
+```
+
+---
+
+## Monitoring & Alerts
+
+### What to Watch During Peak
 
 These are the metrics that matter when traffic is live and real money is at stake:
 
@@ -401,11 +403,9 @@ These are the metrics that matter when traffic is live and real money is at stak
 | ALB 5XX errors | > 10/min | > 100/min | CloudWatch alarm |
 | RDS free storage | < 10GB | < 5GB | CloudWatch alarm |
 
----
+### Alarms Provisioned
 
-## Alarms at a Glance
-
-10 alarms are provisioned automatically and wired to email via SNS:
+10 alarms are created automatically by `modules/monitoring/` and wired to email via SNS:
 
 | Alarm | Metric | Threshold |
 |---|---|---|
