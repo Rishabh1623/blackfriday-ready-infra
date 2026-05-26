@@ -47,6 +47,8 @@ No downtime. No database connection errors. Cache hit rate held above 80% throug
 | **CloudWatch — live metrics during peak** | **WAF — bot traffic being blocked** |
 | ![ASG Scaling](https://raw.githubusercontent.com/Rishabh1623/blackfriday-ready-infra/main/docs/Infra%20ASG.png) | ![ElastiCache](https://raw.githubusercontent.com/Rishabh1623/blackfriday-ready-infra/main/docs/Infra%20elasticache.png) |
 | **ASG — instances scaling out under load** | **ElastiCache — Redis holding cache hit rate** |
+| ![RDS Proxy](https://raw.githubusercontent.com/Rishabh1623/blackfriday-ready-infra/main/docs/Infra%20RDS%20proxy.png) | ![GitHub Actions](https://raw.githubusercontent.com/Rishabh1623/blackfriday-ready-infra/main/docs/Infra%20git%20green.png) |
+| **RDS Proxy — connection pooling under peak load** | **GitHub Actions — keyless deploy pipeline green** |
 
 ---
 
