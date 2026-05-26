@@ -6,6 +6,18 @@ This project is the answer to that scenario. It's a complete, production-grade A
 
 Everything here is real — deployed, load-tested at 500 concurrent users, and proven to hold. Not a tutorial. Not a sample. A reference architecture you can actually run.
 
+![AWS](https://img.shields.io/badge/AWS-232F3E?style=for-the-badge&logo=amazonaws&logoColor=white)
+![Terraform](https://img.shields.io/badge/Terraform-7B42BC?style=for-the-badge&logo=terraform&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+
+| Requests handled | Peak concurrent users | Error rate | p95 response time | Checkout success |
+|---|---|---|---|---|
+| 406,309 in 31 min | 500 VUs | 1.84% | 69ms | 95.4% |
+
 ---
 
 ## The Problem This Solves
