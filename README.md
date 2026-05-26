@@ -39,6 +39,15 @@ Load tested at **500 concurrent virtual users**, sustained for 31 minutes, 406,3
 
 No downtime. No database connection errors. Cache hit rate held above 80% throughout peak load.
 
+### Console Evidence
+
+| | |
+|---|---|
+| ![CloudWatch Dashboard](https://raw.githubusercontent.com/Rishabh1623/blackfriday-ready-infra/main/docs/infra%20cloudwatch.png) | ![WAF Traffic](https://raw.githubusercontent.com/Rishabh1623/blackfriday-ready-infra/main/docs/Infra%20waf%20sample.png) |
+| **CloudWatch — live metrics during peak** | **WAF — bot traffic being blocked** |
+| ![ASG Scaling](https://raw.githubusercontent.com/Rishabh1623/blackfriday-ready-infra/main/docs/Infra%20ASG.png) | ![ElastiCache](https://raw.githubusercontent.com/Rishabh1623/blackfriday-ready-infra/main/docs/Infra%20elasticache.png) |
+| **ASG — instances scaling out under load** | **ElastiCache — Redis holding cache hit rate** |
+
 ---
 
 ## How It's Built
